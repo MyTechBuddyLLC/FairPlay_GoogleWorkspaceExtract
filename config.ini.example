@@ -1,0 +1,20 @@
+[GOOGLE]
+# Path to the Google Cloud service account credentials JSON file.
+# See README.md for instructions on how to create this file.
+SERVICE_ACCOUNT_FILE = credentials.json
+
+# The email address of a Google Workspace administrator with rights
+# to access all Classroom data. The service account will impersonate this user.
+ADMIN_USER_EMAIL = admin@yourdomain.com
+
+[DATABASE]
+# The file path for the SQLite database where the extracted data will be stored.
+PATH = classroom_data.sqlite3
+
+[SETTINGS]
+# Determines the level of Personally Identifiable Information (PII) masking.
+# Options are:
+#   none: No PII is masked. All data is stored as is. (Default)
+#   students_only: PII for users with the 'STUDENT' role is masked.
+#   all: PII for all users (STUDENT and TEACHER) is masked.
+PII_MASKING_LEVEL = none
