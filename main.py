@@ -12,7 +12,8 @@ from src.config import get_config, ConfigError
 from src.auth import get_classroom_service
 from src.database import (
     initialize_database, save_course, save_user, save_enrollment,
-    save_announcement, save_course_work, save_student_submission
+    save_announcement, save_course_work, save_student_submission,
+    create_views
 )
 from src.extractor import (
     get_courses, get_teachers, get_students, get_announcements,
@@ -110,6 +111,10 @@ def main(db_conn_for_testing: Connection = None):
             print(f"  Found and processed {len(course_works)} course work items and their submissions.")
 
             conn.commit() # Commit after each course is fully processed
+
+        # 5. Create analytics views
+        print("\nCreating database views for analytics...")
+        create_views(conn)
 
         print("\nData extraction process completed successfully.")
 

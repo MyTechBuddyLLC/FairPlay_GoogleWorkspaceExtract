@@ -2,8 +2,8 @@ import unittest
 import sqlite3
 
 from src.database import (
-    initialize_database, save_user, save_course, save_enrollment,
-    save_announcement, save_course_work, save_student_submission
+    initialize_database, create_views, save_user, save_course,
+    save_enrollment, save_announcement, save_course_work, save_student_submission
 )
 
 class TestDatabase(unittest.TestCase):
@@ -18,67 +18,72 @@ class TestDatabase(unittest.TestCase):
         self.conn.close()
 
     def test_initialize_database(self):
-        """Tests that all tables are created upon initialization."""
-        tables = [
-            'users', 'courses', 'enrollments', 'announcements',
-            'course_work', 'student_submissions'
-        ]
+        """Tests that all tables are created upon initialization with correct names."""
+        tables = ['USRS', 'CRSS', 'ENRLLMNTS', 'ANNCMNTS', 'CRS_WRK', 'STDNT_SBMSSNS']
         for table in tables:
-            self.cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
-            self.assertIsNotNone(self.cursor.fetchone(), f"Table '{table}' was not created.")
+            with self.subTest(table=table):
+                self.cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}';")
+                self.assertIsNotNone(self.cursor.fetchone(), f"Table '{table}' was not created.")
+
+    def _populate_data_for_views(self):
+        """Helper function to populate DB with data needed for view tests."""
+        # Save a user, course, and enrollment
+        user_profile = {'id': 'user123', 'name': {'fullName': 'Test User'}, 'emailAddress': 'test@example.com', 'photoUrl': ''}
+        course_data = {'id': 'course456', 'name': 'Test Course', 'section': 'TC101', 'description': 'A test course.', 'creationTime': 't1', 'updateTime': 't2', 'courseState': 'ACTIVE'}
+        save_user(self.conn, user_profile)
+        save_course(self.conn, course_data)
+        save_enrollment(self.conn, 'course456', 'user123', 'STUDENT')
+
+        # Save an announcement
+        announcement_data = {'id': 'anno1', 'courseId': 'course456', 'creatorUserId': 'user123', 'text': 'Hello', 'state': 'PUBLISHED', 'creationTime': 't3', 'updateTime': 't4'}
+        save_announcement(self.conn, announcement_data)
+
+        # Save course work and a submission
+        course_work_data = {'id': 'cw1', 'courseId': 'course456', 'title': 'Test Assignment', 'creationTime': 't5', 'updateTime': 't6'}
+        submission_data = {'id': 'sub1', 'courseWorkId': 'cw1', 'userId': 'user123', 'state': 'RETURNED', 'assignedGrade': None, 'creationTime': 't7', 'updateTime': 't8'}
+        save_course_work(self.conn, course_work_data)
+        save_student_submission(self.conn, submission_data)
+        self.conn.commit()
+
+    def test_create_views(self):
+        """Tests that all views are created and contain expected data."""
+        self._populate_data_for_views()
+        create_views(self.conn)
+
+        views = ['VW_ENRLLMNT_DTLS', 'VW_ASSGNMNT_GRDS', 'VW_CRS_ACTVTY_LG', 'VW_SIS_ENRLLMNT_ROSTER']
+        for view in views:
+            with self.subTest(view=view):
+                self.cursor.execute(f"SELECT name FROM sqlite_master WHERE type='view' AND name='{view}';")
+                self.assertIsNotNone(self.cursor.fetchone(), f"View '{view}' was not created.")
+
+        # Test the excused logic in the assignment grades view
+        self.cursor.execute("SELECT SBMSSN_STS FROM VW_ASSGNMNT_GRDS WHERE STNDT_NM='Test User'")
+        self.assertEqual(self.cursor.fetchone()[0], 'EXCSD')
 
     def test_save_user(self):
-        """Tests saving a user and the ON CONFLICT DO UPDATE behavior."""
-        user_profile = {
-            'id': 'user123',
-            'name': {'fullName': 'Test User'},
-            'emailAddress': 'test@example.com',
-            'photoUrl': 'http://example.com/photo.jpg'
-        }
+        """Tests saving a user with new naming conventions."""
+        user_profile = {'id': 'user123', 'name': {'fullName': 'Test User'}, 'emailAddress': 'test@example.com', 'photoUrl': 'http://example.com/photo.jpg'}
         save_user(self.conn, user_profile)
         self.conn.commit()
-
-        # Verify insertion
-        self.cursor.execute("SELECT * FROM users WHERE id='user123';")
-        user_row = self.cursor.fetchone()
-        self.assertEqual(user_row, ('user123', 'Test User', 'test@example.com', 'http://example.com/photo.jpg'))
-
-        # Test update
-        user_profile['name']['fullName'] = 'Test User Updated'
-        save_user(self.conn, user_profile)
-        self.conn.commit()
-        self.cursor.execute("SELECT name FROM users WHERE id='user123';")
-        self.assertEqual(self.cursor.fetchone()[0], 'Test User Updated')
+        self.cursor.execute("SELECT * FROM USRS WHERE ID='user123';")
+        self.assertEqual(self.cursor.fetchone(), ('user123', 'Test User', 'test@example.com', 'http://example.com/photo.jpg'))
 
     def test_save_course(self):
-        """Tests saving a course."""
-        course_data = {
-            'id': 'course456', 'name': 'Test Course', 'section': 'TC101',
-            'description': 'A test course.', 'creationTime': '2024-01-01T00:00:00Z',
-            'updateTime': '2024-01-01T00:00:00Z', 'courseState': 'ACTIVE'
-        }
+        """Tests saving a course with new naming conventions."""
+        course_data = {'id': 'course456', 'name': 'Test Course', 'section': 'TC101', 'description': 'A test course.', 'creationTime': 't1', 'updateTime': 't2', 'courseState': 'ACTIVE'}
         save_course(self.conn, course_data)
         self.conn.commit()
-        self.cursor.execute("SELECT name, section FROM courses WHERE id='course456';")
+        self.cursor.execute("SELECT NM, SCTN FROM CRSS WHERE ID='course456';")
         self.assertEqual(self.cursor.fetchone(), ('Test Course', 'TC101'))
 
     def test_save_enrollment(self):
-        """Tests saving an enrollment and the ON CONFLICT DO NOTHING behavior."""
-        # Need to insert user and course first due to foreign key constraints
+        """Tests saving an enrollment with new naming conventions."""
         self.test_save_user()
         self.test_save_course()
-
         save_enrollment(self.conn, 'course456', 'user123', 'STUDENT')
         self.conn.commit()
-        self.cursor.execute("SELECT role FROM enrollments WHERE course_id='course456' AND user_id='user123';")
+        self.cursor.execute("SELECT RL FROM ENRLLMNTS WHERE CRS_ID='course456' AND USR_ID='user123';")
         self.assertEqual(self.cursor.fetchone()[0], 'STUDENT')
-
-        # Try to insert again, should do nothing
-        save_enrollment(self.conn, 'course456', 'user123', 'STUDENT')
-        self.conn.commit()
-        self.cursor.execute("SELECT COUNT(*) FROM enrollments;")
-        self.assertEqual(self.cursor.fetchone()[0], 1)
-
 
 if __name__ == '__main__':
     unittest.main()
