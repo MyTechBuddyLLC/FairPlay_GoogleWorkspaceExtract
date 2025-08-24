@@ -58,7 +58,7 @@ class TestIntegration(unittest.TestCase):
         self.assertEqual(cursor.fetchone()[0], 'Stud Test')
         cursor.execute("SELECT ASSGND_GRD FROM VW_ASSGNMNT_GRDS WHERE STNDT_NM='Stud Test'")
         self.assertEqual(cursor.fetchone()[0], 95)
-
+        
         conn.close()
 
     @patch('main.get_config')

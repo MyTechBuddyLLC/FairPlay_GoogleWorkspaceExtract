@@ -20,10 +20,14 @@ def initialize_database(db_path: str) -> Connection:
     """
     try:
         conn = sqlite3.connect(db_path)
+        
+        # Enable foreign key constraint enforcement
         conn.execute("PRAGMA foreign_keys = ON;")
         cursor = conn.cursor()
 
-        # Users table
+        # Create tables based on a 3NF schema
+
+        # Users table (stores all unique users, both teachers and students)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS USRS (
             ID TEXT PRIMARY KEY,
@@ -74,7 +78,7 @@ def initialize_database(db_path: str) -> Connection:
         );
         """)
 
-        # Course Work table
+        # Course Work table (assignments, questions, etc.)
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS CRS_WRK (
             ID TEXT PRIMARY KEY,

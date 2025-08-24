@@ -9,30 +9,32 @@ The tool is designed with school IT administrators in mind and includes features
 *   **Comprehensive Data Extraction:** Extracts courses, teachers, students, enrollments, assignments, announcements, and student submissions.
 *   **Local Storage:** Saves all data into a local SQLite database file, giving you full control over your data.
 *   **Analytics-Ready Views:** Automatically creates several database views that join tables and denormalize data for easier querying.
-*   **PII Masking:** Built-in functionality to mask student or all user PII.
+*   **Normalized Database:** The database schema is designed in Third Normal Form (3NF) for data integrity and efficient querying.
+*   **PII Masking:** Built-in functionality to mask student or all user (student and teacher) PII, replacing names and emails with non-identifiable unique IDs.
 *   **Standalone and Configurable:** Runs as a standalone script with all settings managed through a simple configuration file.
 
 ## Prerequisites
 
 *   Python 3.8 or newer.
-*   Administrator access to a Google Workspace account.
+*   Administrator access to a Google Workspace account. This is required to grant the necessary permissions for the tool to access Classroom data across your domain.
 
 ## Setup and Installation
 
 ### Step 1: Clone the Repository
+First, clone this repository to your local machine using git:
 ```bash
 git clone https://github.com/your-repo/FairPlay_GoogleWorkspaceExtract.git
 cd FairPlay_GoogleWorkspaceExtract
 ```
 
 ### Step 2: Install Dependencies
+Install the necessary Python libraries using pip and the provided `requirements.txt` file:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Google Workspace Authentication Setup
-
-This is the most critical part of the setup process. This tool uses a **Service Account** with **Domain-Wide Delegation** to access Google Classroom data on behalf of an administrator.
+This is the most critical part of the setup process. This tool uses a **Service Account** with **Domain-Wide Delegation** to access Google Classroom data on behalf of an administrator. This allows the script to see all classrooms in your domain without needing to log in as a specific user.
 
 Follow these steps carefully.
 
@@ -80,6 +82,9 @@ cp config.ini.example config.ini
 *   `ADMIN_USER_EMAIL`: The email of a Workspace administrator for the script to impersonate.
 *   `PATH`: The path for the output SQLite database (e.g., `data/classroom_data.sqlite3`). The script will create directories if they don't exist.
 *   `PII_MASKING_LEVEL`: Set the PII masking level: `none`, `students_only`, or `all`.
+     *   `none`: (Default) All data is stored as is.
+     *   `students_only`: Masks the name and email of all users with the "student" role.
+     *   `all`: Masks the name and email of all users (students and teachers).
 
 ## Running the Application
 
